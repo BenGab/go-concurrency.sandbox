@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var cache map[int]Book
+var cache = map[int]Book{}
 var rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func main() {
@@ -16,7 +16,17 @@ func main() {
 		if b, ok := queryCache(id); ok {
 			fmt.Println("From Cache")
 			fmt.Println(b)
+			continue
 		}
+
+		if b, ok := queryDataBase(id); ok {
+			fmt.Println("From DB")
+			fmt.Println(b)
+			continue
+		}
+
+		fmt.Printf("Book not found id: '%'v", id)
+		time.Sleep(150 * time.Millisecond)
 	}
 }
 
