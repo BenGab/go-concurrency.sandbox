@@ -12,25 +12,37 @@ var rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func main() {
 	wg := &sync.WaitGroup{}
+	cacheCh := make(chan Book)
+	dbCh := make(chan Book)
 	for i := 0; i < 10; i++ {
 		id := rnd.Intn(10) + 1
 		wg.Add(2)
-		go func(id int, wg *sync.WaitGroup) {
+
+		go func(id int, wg *sync.WaitGroup, ch chan<- Book) {
 			if b, ok := queryCache(id); ok {
-				fmt.Println("From Cache")
-				fmt.Println(b)
+				ch <- b
 			}
 			wg.Done()
-		}(id, wg)
+		}(id, wg, cacheCh)
 
-		go func(id int, wg *sync.WaitGroup) {
+		go func(id int, wg *sync.WaitGroup, ch chan<- Book) {
 			if b, ok := queryDataBase(id); ok {
-				fmt.Println("From DB")
-				fmt.Println(b)
+				ch <- b
 			}
 			wg.Done()
-		}(id, wg)
+		}(id, wg, dbCh)
 
+		go func(cacheCh, dbCh <-chan Book) {
+			select {
+			case b := <-cacheCh:
+				fmt.Println("FROM CAHCE")
+				fmt.Println(b)
+				<-dbCh
+			case b := <-dbCh:
+				fmt.Println("FROM DB")
+				fmt.Println(b)
+			}
+		}(cacheCh, dbCh)
 		wg.Wait()
 	}
 }
